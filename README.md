@@ -7,10 +7,13 @@
 
 ## 在线体验
 
-- GitHub Pages：<https://meng6969.github.io/transdesk/>（**默认携带中⇄英 int8 神经模型**，约 100 MB，位于 gh-pages 分支）
-- Qoder Sites 镜像：<https://transdesk-rg8bmuwp2yo.qoder.zone>（部署产物有大小上限，仅词典引擎）
+- 官网（干净地址镜像）：<https://transdesk-rg8bmuwp2yo.qoder.zone>（词典引擎；该部署对产物体积有上限，不携带神经模型）
+- GitHub Pages 个人地址版（URL 含账号名）已按要求下线；`python pack-ghpages.py`
+  可随时重新组装**含中⇄英 int8 神经模型**的 Pages 部署目录（约 133 MB）。
+  想要「不含账号名 + 带模型」的在线版：给仓库绑定自定义域名（CNAME 到 Pages），
+  或等组织账号可用后迁移仓库。
 
-两处均为纯静态部署；模型缺失或加载失败时自动回退词典引擎，不报错。
+镜像为纯静态部署；模型缺失或加载失败时自动回退词典引擎，不报错。
 
 ## 功能
 
