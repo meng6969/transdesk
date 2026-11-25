@@ -1,0 +1,24 @@
+{
+  "name": "译台 TransDesk · 离线英日中文互译",
+  "short_name": "译台",
+  "description": "纯离线的文字与图片翻译台：英/日 → 中，也支持中 → 英、中 → 日。词典与规则全部在浏览器本地执行，可自加词典，图片 OCR 也在本机完成，内容不出设备。",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f7f5f1",
+  "theme_color": "#f7f5f1",
+  "categories": ["productivity", "utilities", "education"],
+  "icons": [
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "英 → 中", "url": "./index.html#en2zh" },
+    { "name": "日 → 中", "url": "./index.html#ja2zh" },
+    { "name": "图片翻译", "url": "./index.html#ocr" }
+  ]
+}

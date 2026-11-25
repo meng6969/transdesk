@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="译台 TransDesk">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7f5f1"/>
+      <stop offset="1" stop-color="#e8e2d6"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <rect x="56" y="88" width="188" height="336" rx="34" fill="#1d2b2f"/>
+  <rect x="268" y="88" width="188" height="336" rx="34" fill="#c2542d"/>
+  <g fill="#f7f5f1" font-family="Noto Sans SC, PingFang SC, Microsoft YaHei, sans-serif" font-weight="700" text-anchor="middle">
+    <text x="150" y="300" font-size="150">译</text>
+  </g>
+  <g fill="#1d2b2f" font-family="Noto Sans SC, PingFang SC, Microsoft YaHei, sans-serif" font-weight="700" text-anchor="middle">
+    <text x="362" y="300" font-size="150">中</text>
+  </g>
+  <path d="M250 236 L262 236 M256 230 L262 236 L256 242" stroke="#f7f5f1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".9"/>
+</svg>

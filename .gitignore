@@ -1,0 +1,30 @@
+# Python / 编辑残留
+__pycache__/
+*.pyc
+.bak-handwritten/
+.removed/
+.qoder/
+
+# Qoder Sites 描述符（含发布元数据，不入公共仓库）
+.译台 TransDesk.qoder.site
+.github-token
+
+# 神经模型二进制（约 100 MB，用 mt/fetch-models.py 获取，不进 git）
+mt/zh-en/
+mt/en-zh/
+mt/ja-en/
+mt/en-ja/
+mt/*.log
+
+# Android 构建产物与本地签名密钥（rebuild 时自动生成/重建）
+android/build/
+android/gen/
+android/app/src/main/assets/
+android/transdesk.keystore
+android/*.log
+
+# 工具链下载物（get-*.sh 会重新下载）
+android-tools/*
+!android-tools/get-sdk.sh
+!android-tools/get-pkgs.sh
+!android-tools/get-jdk17.sh

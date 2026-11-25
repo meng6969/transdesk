@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">译台</string>
+
+    <!-- 用系统 Material 主题即可：整个界面由 WebView 里的 styles.css 决定 -->
+    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#F4F1EA</item>
+        <item name="android:statusBarColor">#F4F1EA</item>
+        <item name="android:navigationBarColor">#F4F1EA</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

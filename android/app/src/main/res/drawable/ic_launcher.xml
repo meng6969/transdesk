@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 图标是矢量图：APK 里只占 1 KB，各分辨率都不用另存 PNG -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#A83A1E"
+        android:pathData="M22,4L86,4A18,18 0 0,1 104,22L104,86A18,18 0 0,1 86,104L22,104A18,18 0 0,1 4,86L4,22A18,18 0 0,1 22,4z" />
+    <path
+        android:fillColor="#FDF8F2"
+        android:pathData="M28,30L80,30L80,38L28,38z" />
+    <path
+        android:fillColor="#FDF8F2"
+        android:pathData="M50,30L58,30L58,54L50,54z" />
+    <path
+        android:fillColor="#FDF8F2"
+        android:pathData="M54,52L60,56L38,80L32,76z" />
+    <path
+        android:fillColor="#FDF8F2"
+        android:pathData="M54,52L48,56L70,80L76,76z" />
+</vector>

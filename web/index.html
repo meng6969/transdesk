@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>译台 TransDesk · 纯离线英日中文互译</title>
+<meta name="description" content="离线运行的文字与图片翻译台：粘贴英文、日文即时得到中文，也支持中→英、中→日。词典与规则全部在浏览器本地执行，可自加词典，图片 OCR 也在本地完成。">
+<meta name="theme-color" content="#f7f5f1">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="frame">
+
+  <header class="bar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">译</span>
+      <span class="brand-txt">
+        <b>译台 <span class="en">TransDesk</span></b>
+        <i>纯离线 · 词典 + 规则 · 你的数据不出本机</i>
+      </span>
+    </div>
+
+    <div class="dirs" role="group" aria-label="翻译方向">
+      <button class="dir" data-pair="en" aria-pressed="true" title="中 ⇄ 英：再点一次或按 ⇄ 交换方向"><span>EN</span>→<span>ZH</span></button>
+      <button class="dir" data-pair="ja" aria-pressed="false" title="中 ⇄ 日：再点一次或按 ⇄ 交换方向"><span>JA</span>→<span>ZH</span></button>
+      <button id="btn-swap" class="ghost" title="交换方向（Alt+S）">⇄</button>
+    </div>
+
+    <div class="status">
+      <span id="net-chip" class="chip" title="词典与规则均已缓存在本机">离线就绪</span>
+      <button id="btn-dict" class="ghost" title="我的词典">词典 <b id="dict-count" class="n">0</b></button>
+      <button id="btn-about" class="ghost" title="原理与边界">说明</button>
+      <button id="btn-theme" class="ghost" title="浅色 / 深色">◐</button>
+    </div>
+  </header>
+
+  <main class="desk">
+    <section class="pane pane-src" aria-label="原文">
+      <div class="pane-head">
+        <span class="ttl">原文</span>
+        <span id="src-meta" class="meta">0 字符 · 0 词</span>
+        <span class="spacer"></span>
+        <button id="btn-paste" class="mini">粘贴</button>
+        <button id="btn-clear" class="mini">清空</button>
+      </div>
+      <textarea id="src" spellcheck="false" autocomplete="off" placeholder="把英文或日文粘贴到这里……（也可以直接 Ctrl+V，无需点击）&#10;也可以拖一张图片进来，本地识别文字后再翻译。"></textarea>
+      <div class="pane-foot">
+        <button id="btn-image" class="soft">图片翻译（本地 OCR）</button>
+        <input id="file-image" type="file" accept="image/*" hidden>
+        <span class="hint">Ctrl+Enter 立即翻译 · 结果区双击单词可加词典</span>
+      </div>
+    </section>
+
+    <div style="row-gap:5px;column-gap:5px" class="rail">
+      <div class="rail-line" aria-hidden="true"></div>
+      <button id="btn-go" class="go" title="翻译（Ctrl+Enter）">译</button>
+      <div class="rail-line" aria-hidden="true"></div>
+    </div>
+
+    <section class="pane pane-dst" aria-label="译文">
+      <div class="pane-head">
+        <span class="ttl">译文</span>
+        <span id="dst-meta" class="meta">等待输入</span>
+        <span class="spacer"></span>
+        <button id="btn-copy" class="mini">复制</button>
+        <button id="btn-dl" class="mini">下载 TXT</button>
+      </div>
+      <div id="mt-box" class="mt-box" hidden>
+        <div class="mt-head"><span class="mt-badge">模型</span><span id="mt-meta" class="meta"></span></div>
+        <p id="mt-out" class="mt-out"></p>
+      </div>
+      <div id="out" class="out" tabindex="0" aria-live="polite">
+        <p class="empty">译文会出现在这里。左侧一输入就即时计算，全程不联网。</p>
+      </div>
+      <div class="trace-wrap">
+        <details id="trace-box">
+          <summary>逐段对照 / 判定依据</summary>
+          <div id="trace" class="trace"></div>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <section id="ocr" class="sheet" hidden aria-label="图片文字识别">
+    <header>
+      <b>图片翻译</b>
+      <span id="ocr-status" class="meta">语言包与识别引擎全部来自本站文件，不上传任何图片</span>
+      <span class="spacer"></span>
+      <button id="ocr-close" class="mini">关闭</button>
+    </header>
+    <div class="ocr-body">
+      <div id="drop" class="drop">
+        <p>拖入图片，或
+          <label class="lnk">选择文件<input id="ocr-file" type="file" accept="image/*" hidden></label>
+        </p>
+        <img id="ocr-thumb" alt="待识别图片预览" hidden>
+        <div id="ocr-prog" class="prog" hidden><i></i></div>
+      </div>
+      <div class="ocr-right">
+        <div class="pane-head"><span class="ttl">识别到的原文（可修改）</span>
+          <span class="spacer"></span>
+          <label class="ck"><input id="ocr-auto" type="checkbox" checked> 识别后自动翻译</label>
+        </div>
+        <textarea id="ocr-text" spellcheck="false" placeholder="识别结果会出现在这里，你可以手工修正后再翻译。"></textarea>
+        <div class="row">
+          <select id="ocr-lang" aria-label="识别语言">
+            <option value="eng">英文 eng</option>
+            <option value="jpn">日文 jpn</option>
+          </select>
+          <button id="ocr-run" class="go sm">重新识别</button>
+          <button id="ocr-fill" class="soft">填入左侧并翻译</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="dict" class="sheet" hidden aria-label="我的词典">
+    <header>
+      <b>我的词典</b>
+      <span class="meta">优先级最高：命中你的词条就不再走内置词库</span>
+      <span class="spacer"></span>
+      <button id="dict-close" class="mini">关闭</button>
+    </header>
+    <div class="dict-body">
+      <form id="dict-form" class="dict-form">
+        <input id="d-term" placeholder="词条（如：跑团 / take it offline）" autocomplete="off">
+        <input id="d-gloss" placeholder="译文（如：桌游跑团 / 私底下说）" autocomplete="off">
+        <select id="d-dir" aria-label="方向">
+          <option value="en2zh">英 → 中</option>
+          <option value="ja2zh">日 → 中</option>
+          <option value="zh2en">中 → 英</option>
+          <option value="zh2ja">中 → 日</option>
+        </select>
+        <button class="go sm" type="submit">加入</button>
+      </form>
+      <div class="dict-io">
+        <label class="lnk">导入 CSV / TSV / JSON / Markdown 表格<input id="dict-import" type="file" accept=".csv,.tsv,.txt,.json,.md" hidden></label>
+        <button id="dict-export" class="soft">导出 JSON</button>
+        <button id="dict-clear" class="soft danger">清空我的词典</button>
+        <span id="dict-msg" class="meta"></span>
+      </div>
+      <div class="dict-filter">
+        <input id="dict-filter" placeholder="筛选：输入词条、译文或方向（en2zh / 英 → 中）" autocomplete="off">
+        <span id="dict-n" class="meta"></span>
+      </div>
+      <div id="dict-list" class="dict-list"></div>
+      <p class="fine">导入格式：一行一组，源语和译文用逗号 / 制表符 / 竖线 / 管道分隔；有表头时按表头取列（<code>term,translation</code>、ECDICT 的 <code>word,phonetic,translation</code> 会自动跳过音标列）。上方「方向」下拉决定导入方向，脚本对不上的行会自动纠正（例如选中「中 → 英」时，英文行仍按英 → 中收录）。单次最多导入 20000 条。词条只存在这台设备的浏览器里（IndexedDB），不会同步到任何服务器。</p>
+    </div>
+  </section>
+
+  <section id="about" class="sheet" hidden aria-label="原理与边界">
+    <header>
+      <b>它是怎么工作的，以及不适合用在哪</b>
+      <span class="spacer"></span>
+      <button id="about-close" class="mini">关闭</button>
+    </header>
+    <div class="about-body">
+      <h3>四步，全部在你的浏览器里</h3>
+      <ol>
+        <li><b>切词</b>：英文按词形与标点切开；日文按汉字／假名段切，再对动词、形容词做活用还原（走って → 歩く、食べて → 食べる）。</li>
+        <li><b>短语优先</b>：先在词典里做最长匹配（take it easy、〜お疲れ様です），命中短语就不会被拆成零散单词，这是离线引擎最重要的质量来源。</li>
+        <li><b>虚词与语序规则</b>：冠词/复数/时态、日文助词（は・が・を・に・で・と・の）、句末语气（か・ね・よ・でしょう）按规则映射成中文的地道表达，而不是硬贴字面。</li>
+        <li><b>成句</b>：按中文语序拼接、清洗标点，并给出逐段对照，你能看到每一块是被哪条规则或哪个词条翻出来的。</li>
+      </ol>
+      <h3>词库与许可</h3>
+      <p id="cov" class="cov">词库覆盖统计加载中……</p>
+      <ul class="credits">
+        <li>英文词库来自 <a href="https://github.com/designfuchen/word-atlas" rel="noopener noreferrer" target="_blank">Word Atlas</a>（代码 MIT，词库 <b>CC BY 4.0</b>，署名 “Word Atlas contributors”），含 CEFR 等级、搭配与词族；导入时按中文释义取义项。</li>
+        <li>日文、中文基础词库由本项目自行整理（高频词 + 短语 + 语法条目），不来自任何需要授权的商业词典。</li>
+        <li>图片识别使用 <a href="https://github.com/naptha/tesseract.js" rel="noopener noreferrer" target="_blank">Tesseract.js</a>（Apache-2.0）与 <a href="https://github.com/tesseract-ocr/tessdata_fast" rel="noopener noreferrer" target="_blank">tessdata_fast eng/jpn</a>（Apache-2.0 / 兼容许可），文件全部自本站加载。</li>
+        <li>内置示例与说明文本为本站原创。</li>
+      </ul>
+      <h3>请把它用在这些地方（以及不要用在这些地方）</h3>
+      <p><b>擅长：</b>读英文/日文网页段落、日志与 README、通知与评论、日常短句、看剧截图里的台词——需要“看懂大意”而不是“发表级译文”的场景，以及任何你不想把内容交给服务器的隐私材料。</p>
+      <p><b>不擅长：</b>法律、合同、医疗、财务等必须精确的文本；文学与双关；长难嵌套从句。它是词典 + 规则引擎，不是神经网络翻译模型：术语固定、句式常见的文本质量很好，越文学化、越口语化越容易出怪句子。</p>
+      <p><b>专有名词、人名、公司名、产品名</b>默认保留原文（离线没有可靠的音译表）；把它们加进“我的词典”就能固定译法，这也是让译文越来越合你口味的正确姿势。</p>
+      <p><b>中 → 英 / 中 → 日</b>为短句设计：主谓宾清楚的一两句效果不错，长段落会退化成关键词式译文，说明区不粉饰这一点。</p>
+      <h3>隐私说明</h3>
+      <p>本站是纯静态站点：没有后端接口、没有数据库、没有第三方脚本与统计。文字、图片、你导入的词典都只在浏览器内处理，也不会写入任何网络请求。断网、飞行模式下依旧可用（资源与词库已被本机缓存）。</p>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span id="perf">—</span>
+  </footer>
+</div>
+
+<div id="pop" class="pop" hidden>
+  <div class="pop-head"><b id="pop-term"></b><span id="pop-src" class="meta"></span></div>
+  <div id="pop-body"></div>
+  <div class="pop-foot">
+    <input id="pop-gloss" placeholder="填入你的译法，回车保存到我的词典">
+    <button id="pop-save" class="go sm">保存</button>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="engine.js" defer></script>
+<script src="app.js" defer></script>
+</body>
+</html>

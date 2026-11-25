@@ -1,0 +1,7 @@
+5cd149601802fc8a18124a1c1306144dbbedc058630c4ddb2d53aa76fa9c7c06  mt/models/zh-en/model.zhen.intgemm.alphas.bin
+8524dd4c93ffd7f0ae7be32f77a7c14fea7cdbbebe34ea6ad0ec368d5ddd8b13  mt/models/zh-en/lex.50.50.zhen.s2t.bin
+dff594318ab7d8b7b60b844ab98ebe6b932ae8045fab15235404c787715965b3  mt/models/zh-en/vocab.zhen.spm
+4e5accc141373565ddc8fa1565bceaa8d0c3482a82cab8131c719ebcc6c2157c  mt/models/en-zh/model.enzh.intgemm.alphas.bin
+8575d8daa10e2dbff316dcdf8e1ce475357bcc2c92bdc63b736a2d5add22f681  mt/models/en-zh/lex.50.50.enzh.s2t.bin
+bd9b65504acc6d9726dd281f7defc2adb7c2c22d0688fe2f84697de25197c8c5  mt/models/en-zh/srcvocab.enzh.spm
+aded6993c36e440284d11cec3f6b8aef9c0e43188a772d80be342a713adf223d  mt/models/en-zh/trgvocab.enzh.spm
