@@ -7,10 +7,10 @@
 
 ## 在线体验
 
-- GitHub Pages：<https://meng6969.github.io/transdesk/>（词典引擎版）
-- Qoder Sites 镜像：<https://transdesk-rg8bmuwp2yo.qoder.zone>
+- GitHub Pages：<https://meng6969.github.io/transdesk/>（**默认携带中⇄英 int8 神经模型**，约 100 MB，位于 gh-pages 分支）
+- Qoder Sites 镜像：<https://transdesk-rg8bmuwp2yo.qoder.zone>（部署产物有大小上限，仅词典引擎）
 
-两处均为纯静态部署；神经模型二进制不随站点分发（约 100 MB），站点自动运行词典引擎模式。
+两处均为纯静态部署；模型缺失或加载失败时自动回退词典引擎，不报错。
 
 ## 功能
 
@@ -42,6 +42,9 @@ python mt/fetch-models.py --pairs zh-en,en-zh
 登记项做 sha256 校验，重写 `mt/registry.json` 与 `mt/SHA256SUMS.txt`。
 没有模型时网站与 APP 自动只走词典引擎，不会报错。
 想加日文神经方向：`--pairs zh-en,en-zh,ja-en,en-ja`（经英文中转，体积与延迟翻倍，按需）。
+
+模型二进制不进 git 主分支；`python pack-ghpages.py` 会把 `web/` 连同本地模型
+打包成 GitHub Pages 部署目录（gh-pages 分支携带模型，main 分支保持轻量）。
 
 ## 词典数据重建
 

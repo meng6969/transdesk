@@ -3,7 +3,7 @@
    断网 / 飞行模式下依旧可用。所有资源都来自本站，不涉及任何第三方域名。 */
 'use strict';
 
-var VER = 'transdesk-v4';
+var VER = 'transdesk-v5';
 var SHELL = [
   './', 'index.html', 'styles.css', 'engine.js', 'app.js',
   'manifest.webmanifest', 'assets/icon.svg'
@@ -51,6 +51,9 @@ function pick(req) {
 
 function save(u, res) {
   if (!res || res.status !== 200) return;
+  /* 神经模型与 wasm 运行时上百 MB：不进 Cache Storage（配额风险），
+     交给浏览器 HTTP 缓存；离线场景由安卓 APP 的 assets 承担。 */
+  if (u.pathname.indexOf('/mt/') === 0) return;
   caches.open(VER).then(function (c) { c.put(u, res.clone()); });
 }
 
