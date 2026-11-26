@@ -14,43 +14,9 @@
 
 ## 功能
 
-- 中⇄英、中⇄日四个方向；两个方向键 + 一个翻面键。
+- 中⇄英、中⇄日四个方向。
 - 短语最长匹配、日文活用还原、虚词与语序规则、逐段对照与判定依据。
-- 词库按方向懒加载；词形缓存、模型防抖与结果复用降低重复计算。
-- 本地 OCR（Tesseract.js，eng / jpn），图片不出设备。
-- 英→中神经模型优先；安卓 APP 同时带中→英模型。
-- “我的词典”支持 CSV / TSV / JSON / Markdown，只存 IndexedDB。
-- Android WebView 壳**零权限**，不申请 `INTERNET`；minSdk 29（Android 10）。
 
-## 本地运行与测试
-
-```bash
-python serve.py       # http://localhost:8000
-node test.js          # 词典 / 规则回归测试
-```
-
-直接双击 `index.html` 不可用：Service Worker、ES module 与 IndexedDB 需要 localhost 或 HTTPS。
-
-## 模型与站点打包
-
-```bash
-python mt/fetch-models.py --pairs zh-en,en-zh
-python pack-ghpages.py .ghpages                    # 双向模型，约 133 MB
-python pack-ghpages.py web-mt --pairs en-zh        # 官网单语向，约 78 MB
-```
-
-模型从 Mozilla Firefox Translations 发布源获取，并按 Remote Settings 登记值做 SHA256 校验。模型二进制不入 git；缺少模型时自动使用词典引擎。
-
-## Android 打包
-
-```bash
-bash android-tools/get-jdk17.sh    # 首次
-bash android-tools/get-sdk.sh      # 首次
-bash android-tools/get-pkgs.sh     # 首次：platform-34 + build-tools 34
-bash android/rebuild.sh
-```
-
-无 Gradle / Maven：aapt2 → javac → d8 → zipalign → apksigner。签名密钥仅存本机，不入库。神经模型与 OCR 需要 WebView ≥ Chrome/91；旧内核自动降级，词典翻译不受影响。
 
 ## 词典来源
 
