@@ -17,6 +17,27 @@ for (const d of dirs) {
   if (fs.existsSync(p)) E.load(d, JSON.parse(fs.readFileSync(p, 'utf8')));
 }
 
+const assert = require('assert');
+
+// 质量回归：参照项必须剔除，但合法的 see/compare 与完整短语不能误伤。
+assert.strictEqual(E.mk('erroneous variant of 茐'), null);
+assert.strictEqual(E.mk('erhua variant of 茐'), null);
+assert.strictEqual(E.mk('Japanese variant of 東京'), null);
+assert.strictEqual(E.mk('variant Chinese character'), null);
+assert.strictEqual(E.mk('variant form'), null);
+assert.strictEqual(E.mk('see the entry for details'), null);
+assert.strictEqual(E.mk('参见上条'), null);
+assert.strictEqual(E.mk('see-saw').g, 'see-saw');
+assert.strictEqual(E.mk('compare notes').g, 'compare notes');
+assert.strictEqual(E.mk('form of government').g, 'form of government');
+assert.strictEqual(E.short(E.mk(' Hope to see you again').g), 'Hope to see you again');
+assert.strictEqual(E.mk('basket for chopsticks；erhua variant of 茐').g, 'basket for chopsticks');
+assert.strictEqual(E.short(E.mk('basket for chopsticks').g), 'basket for chopsticks');
+assert.strictEqual(E.load('en2zh', { w: { __filter_test_bad__: '参见某条', __filter_test_good__: '筷子' } }), 1);
+assert.strictEqual(E.lookup('en2zh', '__filter_test_bad__'), null);
+assert.ok(E.lookup('en2zh', '__filter_test_good__'));
+E.D.en2zh.w.delete('__filter_test_good__');
+
 const BAT = {
   en2zh: [
     'I usually take the bus to work, but yesterday I walked because the weather was nice.',

@@ -21,11 +21,19 @@ OUTDIR = os.path.join(ROOT, 'web', 'data')
 CJK = re.compile(u'[㐀-䶿一-鿿぀-ヿ]')
 ASCII_WORD = re.compile(r"^[a-z][a-z'\- ]{0,24}$")
 
-# 释义里这些片段是“参照条目”，不是可译内容
+# 释义里这些片段是“参照条目”，不是可译内容。变体限定词必须与
+# variant/form/spelling of 一起匹配，不能误伤 invariant、see-saw 等实词。
+VARIANT_QUAL = (r'(?:erroneous|erhua|old|unofficial|ancient|archaic|classical|japanese|taiwan|'
+                r'obscure|emphatic|alternative|variant|literary|dialectal|dated|colloquial|'
+                r'simplified|traditional|a|short|contracted|nonstandard|respectful|causative|polite)')
 SKIP_SEGMENT = re.compile(
-    r'^(variant of|old variant|unofficial variant|see |used |classifier|abbr\.|'
-    r'alternative form|alternative spelling|Taiwan pr|literary|coll\.|polite|'
-    r'euphemistic|derogatory|honorific|military|religion|bound form|surname)')
+    r'^(?:' + VARIANT_QUAL + r' )?(?:variant|spelling)'
+    r'(?: (?:chinese )?(?:character|pronunciation))?(?: of\b|$)|'
+    r'^(?:' + VARIANT_QUAL + r' )form(?: (?:chinese )?(?:character|pronunciation))? of\b|'
+    r'^(?:' + VARIANT_QUAL + r' )?form(?: (?:chinese )?(?:character|pronunciation))?$|'
+    r'^see (?:the )?(?:entry|article|sense|above|below)\b|^参见(?:某|该|此|上|下)?条|'
+    r'^used |^classifier|^abbr\.|^Taiwan pr|^literary|^coll\.|^polite|'
+    r'^euphemistic|^derogatory|^honorific|^military|^religion|^bound form|^surname')
 
 
 def load_json(path):

@@ -12,6 +12,9 @@ __pycache__/
 # GitHub Pages 打包输出（pack-ghpages.py 生成，含模型二进制）
 .ghpages/
 
+# Qoder Sites 精简模型产物（单语向 en-zh，脚本生成）
+web-mt/
+
 # 神经模型二进制（约 100 MB，用 mt/fetch-models.py 获取，不进 git）
 mt/zh-en/
 mt/en-zh/

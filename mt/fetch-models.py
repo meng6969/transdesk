@@ -42,7 +42,7 @@ ALL_PAIRS = ('zh-en', 'en-zh', 'ja-en', 'en-ja')
 
 
 def get(url, timeout=60):
-    req = urllib.request.Request(url, headers={'User-Agent': 'transdesk/1.4'})
+    req = urllib.request.Request(url, headers={'User-Agent': 'transdesk/1.5'})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read()
 

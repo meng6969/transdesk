@@ -235,7 +235,8 @@
     });
   }
   /* ================================================== 翻译与渲染 */
-  var S = { dir: lsGet('dir', 'en2zh'), last: null, ready: false, timer: 0, mtSeq: 0 };
+  var S = { dir: lsGet('dir', 'en2zh'), last: null, ready: false, timer: 0, mtSeq: 0, mtTimer: 0 };
+  var LOADED = {}, LOADING = {}, MT_CACHE = new Map();
   if (DIRS.indexOf(S.dir) < 0) S.dir = 'en2zh';
 
   function paintDirs() {
@@ -267,51 +268,81 @@
     }
     return out.join('');
   }
+  function cancelMT() {
+    clearTimeout(S.mtTimer); S.mtTimer = 0; S.mtSeq++;
+    var mb = $('#mt-box'); if (mb) mb.hidden = true;
+  }
+  function current(text, dir) { return dir === S.dir && $('#src').value === text; }
   function renderOut(text) {
     var box = $('#out');
     if (!String(text || '').trim()) {
-      box.innerHTML = '<p class="empty">译文会出现在这里。左侧一输入就即时计算，全程不联网。</p>';
+      cancelMT(); box.innerHTML = '<p class="empty">译文会出现在这里。左侧一输入就即时计算，全程不联网。</p>';
       $('#trace').innerHTML = ''; S.last = null; renderMeta(text, null); return;
     }
-    if (!S.ready || !E) {
-      box.innerHTML = '<p class="empty">词库还在加载（或加载失败）。刷新一次试试；本地预览需通过 http://127.0.0.1 打开。</p>';
+    if (!E) {
+      cancelMT(); box.innerHTML = '<p class="empty">引擎文件缺失（web/engine.js）。请确认站点目录完整后刷新。</p>';
       renderMeta(text, null); return;
     }
-    var r = E.translate(text, S.dir);
-    S.last = r;
-    var wrap = S.dir.indexOf('zh2') === 0;      // 结果是外文时才做「双击加词」的热区
-    var html = r.segs.map(function (sg, i) {
-      var body = wrap ? termSpans(sg.dst, S.dir) : esc(sg.dst);
-      var num = r.segs.length > 1 ? '<span class="num">' + (i + 1) + '</span>' : '';
-      var note = sg.notes ? '<span class="note">' + esc(sg.notes) + '</span>' : '';
-      return '<p class="seg">' + num + body + note + '</p>';
-    }).join('');
-    box.innerHTML = html || '<p class="empty">没有可翻译的内容。</p>';
-    renderTrace(r);
-    renderMeta(text, r);
-    runMT(text);
+    var dir = S.dir;
+    cancelMT(); S.last = null;
+    box.innerHTML = '<p class="empty">正在载入' + DIR_LABEL[dir] + '词库……</p>';
+    renderMeta(text, null);
+    ensureDir(dir).then(function () {
+      if (!current(text, dir)) return;
+      var r = E.translate(text, dir);
+      if (!current(text, dir)) return;
+      S.last = r;
+      var wrap = dir.indexOf('zh2') === 0;      // 结果是外文时才做「双击加词」的热区
+      var html = r.segs.map(function (sg, i) {
+        var body = wrap ? termSpans(sg.dst, dir) : esc(sg.dst);
+        var num = r.segs.length > 1 ? '<span class="num">' + (i + 1) + '</span>' : '';
+        var note = sg.notes ? '<span class="note">' + esc(sg.notes) + '</span>' : '';
+        return '<p class="seg">' + num + body + note + '</p>';
+      }).join('');
+      box.innerHTML = html || '<p class="empty">没有可翻译的内容。</p>';
+      renderTrace(r); renderMeta(text, r); runMT(text, dir);
+    }).catch(function (e) {
+      if (!current(text, dir)) return;
+      cancelMT(); S.last = null;
+      box.innerHTML = '<p class="empty">词库加载失败：' + esc(e.message || e) + '。刷新一次试试。</p>';
+      renderMeta(text, null);
+    });
   }
-  /* 神经模型（可选层）：打包了本地 Bergamot 模型才有 window.TransMT，
-     网页版没有模型文件时这里什么都不做，仍旧只走词典引擎。 */
-  function runMT(text) {
+  /* 神经模型（可选层）：打包了本地 Bergamot 模型才有 window.TransMT。
+     防抖避免每个按键都计算；缓存重复文本；序号保证只显示当前方向的最新结果。 */
+  function runMT(text, dir) {
     var mb = $('#mt-box');
     if (!mb) return;
-    var t = String(text || '');
-    var MT = window.TransMT;
-    if (!t.trim() || !MT || !MT.supports(S.dir)) { mb.hidden = true; S.mtSeq++; return; }
-    var seq = ++S.mtSeq, dir = S.dir;
-    $('#mt-out').textContent = '模型计算中……';
-    $('#mt-meta').textContent = DIR_LABEL[dir];
-    mb.hidden = false;
-    MT.translate(t, dir).then(function (res) {
-      if (seq !== S.mtSeq || dir !== S.dir) return;
-      $('#mt-out').textContent = res.text || '（模型没有给出译文）';
-      $('#mt-meta').textContent = DIR_LABEL[dir] + ' · ' + res.ms + ' ms' + (res.pivoted ? ' · 经英文中转' : '');
-    }).catch(function (e) {
-      if (seq !== S.mtSeq) return;
-      mb.hidden = true;
-      toast('模型不可用，已回退词典：' + ((e && e.message) || e));
-    });
+    dir = dir || S.dir;
+    clearTimeout(S.mtTimer);
+    var t = String(text || ''), MT = window.TransMT;
+    if (!t.trim() || !current(t, dir) || !MT || !MT.supports(dir)) { cancelMT(); return; }
+    var key = dir + '\u0000' + t, cached = MT_CACHE.get(key);
+    if (cached) {
+      MT_CACHE.delete(key); MT_CACHE.set(key, cached);
+      $('#mt-out').textContent = cached.text || '（模型没有给出译文）';
+      $('#mt-meta').textContent = DIR_LABEL[dir] + ' · ' + cached.ms + ' ms · 缓存';
+      mb.hidden = false; S.mtSeq++; return;
+    }
+    S.mtTimer = setTimeout(function () {
+      if (!current(t, dir) || !MT.supports(dir)) return;
+      var seq = ++S.mtSeq;
+      $('#mt-out').textContent = '模型计算中……';
+      $('#mt-meta').textContent = DIR_LABEL[dir];
+      mb.hidden = false;
+      MT.translate(t, dir).then(function (res) {
+        if (seq !== S.mtSeq || dir !== S.dir || !current(t, dir)) return;
+        var result = { text: res.text || '', ms: res.ms || 0, pivoted: !!res.pivoted };
+        MT_CACHE.set(key, result);
+        if (MT_CACHE.size > 64) MT_CACHE.delete(MT_CACHE.keys().next().value);
+        $('#mt-out').textContent = result.text || '（模型没有给出译文）';
+        $('#mt-meta').textContent = DIR_LABEL[dir] + ' · ' + result.ms + ' ms' + (result.pivoted ? ' · 经英文中转' : '');
+      }).catch(function (e) {
+        if (seq !== S.mtSeq || dir !== S.dir || !current(t, dir)) return;
+        mb.hidden = true;
+        toast('模型不可用，已回退词典：' + ((e && e.message) || e));
+      });
+    }, 400);
   }
   var HOW = { user: '我的词典', phrase: '短语', dict: '词典', morph: '词形还原', rule: '规则', num: '数量', sym: '标点', miss: '未收录', raw: '原样' };
   function renderTrace(r) {
@@ -336,7 +367,7 @@
   }
   function setDir(d, keep) {
     if (DIRS.indexOf(d) < 0) return;
-    S.dir = d; lsSet('dir', d); paintDirs(); schedule(true);
+    S.dir = d; lsSet('dir', d); paintDirs(); cancelMT(); S.last = null; schedule(true);
     if (!keep) toast('方向：' + DIR_LABEL[d]);
   }
   function swapDir() {
@@ -466,7 +497,9 @@
   function importRows(rowsIn, tag) {
     var rows = rowsIn || [], cut = 0;
     if (rows.length > MAX_ROWS) { cut = rows.length - MAX_ROWS; rows = rows.slice(0, MAX_ROWS); }
-    var fresh = rows.filter(function (r) { return !USER.rows.some(function (x) { return x.id === r.id; }); });
+    var seen = new Set(USER.rows.map(function (r) { return r.id; }));
+    var fresh = rows.filter(function (r) { return !seen.has(r.id); });
+    fresh.forEach(function (r) { seen.add(r.id); });
     var map = {};
     USER.rows.concat(rows).forEach(function (r) { map[r.id] = r; });
     USER.rows = Object.keys(map).map(function (k) { return map[k]; });
@@ -501,12 +534,12 @@
   function anySheetOpen() { return SHEETS.some(function (s) { return !$(s).hidden; }); }
   function renderCov() {
     var el = $('#cov'); if (!el || !E) return;
-    var c = E.counts(), parts = DIRS.map(function (d) {
-      return DIR_LABEL[d] + ' ' + (c[d] ? c[d].w + ' 词 / ' + c[d].p + ' 短语' : '—');
+    var c = E.counts(), parts = DIRS.filter(function (d) { return c[d] && (c[d].w || c[d].p); }).map(function (d) {
+      return DIR_LABEL[d] + ' ' + c[d].w + ' 词 / ' + c[d].p + ' 短语';
     });
     var src = (E.SOURCES || []).map(function (s) { return s.label; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
-    el.innerHTML = '本机已加载词条：' + parts.join(' · ') + '<br>来源：' + esc(src.join('、')) +
-      '。英文词库来自 Word Atlas（CC BY 4.0，署名 Word Atlas contributors）；日/中文基础词库为本站整理。' +
+    el.innerHTML = '本机已加载词条：' + (parts.join(' · ') || '尚未加载') + '<br>来源：' + esc(src.join('、')) +
+      '。英文词库来自 Word Atlas（CC BY 4.0）与 CC-CEDICT（CC BY-SA 4.0）；日文词库来自 JMdict 等开放词典，中文词库由开放数据机械整理。' +
       '<br>我的词典：' + USER.rows.length + ' 条（优先级最高，仅存本机 IndexedDB）。';
   }
   function applyTheme(t) {
@@ -747,6 +780,38 @@
       return r.json();
     });
   }
+  /* 词库按方向懒加载；同一方向并发切换共享一个 Promise。
+     en2zh 的两个文件仍按原顺序加载，补充表不会覆盖 Word Atlas。 */
+  function ensureDir(dir) {
+    if (LOADED[dir]) return Promise.resolve();
+    if (LOADING[dir]) return LOADING[dir];
+    var chain = Promise.resolve(), count = 0, failed = [];
+    DATA.filter(function (d) { return d.dir === dir; }).forEach(function (d) {
+      chain = chain.then(function () {
+        return fetchJSON(d.file).then(function (j) {
+          count += E.load(dir, j, {
+            label: (j.meta && j.meta.label) || d.file,
+            attribution: (j.meta && j.meta.attribution) || ''
+          });
+        }, function (e) { console.warn(e); failed.push(d.file); });
+      });
+    });
+    var p = chain.then(function () {
+      if (!count) throw new Error(failed.length ? failed.join('、') + ' 加载失败' : dir + ' 没有可用词条');
+      LOADED[dir] = true;
+      if (dir === S.dir) {
+        chip('离线就绪', false, '引擎与当前词库都是本机文件，断网也能用');
+        $('#dst-meta').textContent = '词库 ' + count.toLocaleString() + ' 条';
+        renderCov();
+      }
+      if (failed.length) toast('有 ' + failed.length + ' 个词库文件没加载到：' + failed.join('、'), 5000);
+    }, function (e) {
+      if (dir === S.dir) chip('词库加载失败', true, e.message || String(e));
+      throw e;
+    });
+    LOADING[dir] = p.catch(function (e) { delete LOADING[dir]; throw e; });
+    return LOADING[dir];
+  }
   function boot() {
     applyTheme(lsGet('theme', window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
     paintDirs(); bind();
@@ -764,25 +829,12 @@
       return;
     }
     chip('正在载入词库…', true);
-    var t0 = performance.now();
-    Promise.all(DATA.map(function (d) {
-      return fetchJSON(d.file).then(function (j) { return { d: d, j: j }; }, function (e) { return { d: d, err: e }; });
-    })).then(function (rs) {
-      var n = 0, fail = [];
-      rs.forEach(function (x) {
-        if (x.err) { console.warn(x.err); fail.push(x.d.file); return; }
-        n += E.load(x.d.dir, x.j, {
-          label: (x.j.meta && x.j.meta.label) || x.d.file,
-          attribution: (x.j.meta && x.j.meta.attribution) || ''
-        });
-      });
-      S.ready = n > 0;
-      var ms = Math.round(performance.now() - t0);
-      if (fail.length) chip('词库不全（缺 ' + fail.length + ' 个）', true, fail.join('、'));
-      else chip('离线就绪', false, '引擎与词库都是本机文件，断网也能用');
-      $('#dst-meta').textContent = '词库 ' + n.toLocaleString() + ' 条 · ' + ms + ' ms';
-      renderCov();
-      if (fail.length) toast('有 ' + fail.length + ' 个词库文件没加载到：' + fail.join('、'), 5000);
+    ensureDir(S.dir).then(function () {
+      S.ready = true;
+      if (!$('#src').value.trim()) renderMeta('', null);
+    }).catch(function (e) {
+      console.warn(e);
+      if (!$('#src').value.trim()) $('#dst-meta').textContent = '词库加载失败';
     });
     dictAll().then(function (rows) {
       if (rows && rows.length) USER.rows = rows.filter(function (r) { return r && r.dir && r.term; });
@@ -791,6 +843,7 @@
       if (saved) { $('#src').value = saved; toast('已恢复上次输入'); }
       schedule(true);
     });
+    window.addEventListener('transdesk-mt-ready', function () { if (S.last) runMT($('#src').value, S.dir); });
     $('#src').addEventListener('input', function () { lsSet('text', $('#src').value.slice(0, 20000)); });
     if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
       window.addEventListener('load', function () {

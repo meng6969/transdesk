@@ -27,12 +27,28 @@ function keyOf(dir, s) {
 
 var POS_ALIAS = { n: 'n', noun: 'n', pron: 'r', num: 'm', v: 'v', vt: 'v', vi: 'v', a: 'a', adj: 'a', adv: 'd', prep: 'p', conj: 'c', aux: 'x', int: 'i', det: 't', art: 't' };
 
+/* 只剔除明确的参照/变体释义，不把 see-saw、compare notes 等实词误删。
+   Python 构建时已做同样过滤；这里同时防御旧缓存和用户导入的脏数据。 */
+var REF_SENSE = /^(?:(?:erroneous|erhua|old|unofficial|ancient|archaic|classical|japanese|taiwan|obscure|emphatic|alternative|variant|literary|dialectal|dated|colloquial|simplified|traditional|a|short|contracted|nonstandard|respectful|causative|polite) )?(?:variant|spelling)(?: (?:chinese )?(?:character|pronunciation))?(?: of\b|$)|^(?:(?:erroneous|erhua|old|unofficial|ancient|archaic|classical|japanese|taiwan|obscure|emphatic|alternative|variant|literary|dialectal|dated|colloquial|simplified|traditional|a|short|contracted|nonstandard|respectful|causative|polite) )form(?: (?:chinese )?(?:character|pronunciation))? of\b|^(?:(?:erroneous|erhua|old|unofficial|ancient|archaic|classical|japanese|taiwan|obscure|emphatic|alternative|variant|literary|dialectal|dated|colloquial|simplified|traditional|a|short|contracted|nonstandard|respectful|causative|polite) )?form(?: (?:chinese )?(?:character|pronunciation))?$|^see (?:the )?(?:entry|article|sense|above|below)\b|^参见(?:某|该|此|上|下)?条/i;
+function cleanGloss(g) {
+  var parts = String(g || '').split(/[；;｜|]/).filter(function (s) { return s.trim() && !REF_SENSE.test(s.trim()); });
+  return parts.join('；');
+}
+function cleanAlt(alt) {
+  return String(alt || '').split(';').filter(function (kv) {
+    var i = kv.indexOf(':');
+    return i < 1 || !REF_SENSE.test(kv.slice(i + 1).trim());
+  }).join(';');
+}
+
 /** raw: "尊重；敬佩" | ["尊重","n","B1","n:尊重;v:遵守"] */
 function mk(raw, prio) {
   var g = '', pos = '', tag = '', alt = null;
   if (Array.isArray(raw)) { g = raw[0] || ''; pos = raw[1] || ''; tag = raw[2] || ''; alt = raw[3] || ''; }
   else if (raw && typeof raw === 'object') { g = raw.g || ''; pos = raw.pos || ''; tag = raw.tag || ''; alt = raw.alt || ''; }
   else g = String(raw == null ? '' : raw);
+  g = cleanGloss(g); alt = cleanAlt(alt);
+  if (!g && !alt) return null;
   var m = g.match(/^\s*([a-zA-Z]{1,6})\.\s*/);
   if (m && !pos) pos = POS_ALIAS[m[1].toLowerCase()] || '';
   var map = {};
@@ -44,13 +60,12 @@ function mk(raw, prio) {
   return { g: g, pos: POS_ALIAS[pos] || pos || 'x', tag: tag, senses: map, prio: prio || 1 };
 }
 
-/** 取用于句中的短译：首个分句、去括注、限长 */
+/** 取用于句中的短译：首个分句、去括注；不再截断完整外文短语。 */
 function short(g) {
   var s = String(g || '').split(/[；;｜|]/)[0];
   s = s.replace(/[（(][^）)]{0,14}[)）]/g, '').replace(/^[^，,]{0,4}[。]/, '');
   s = s.replace(/…[…]?/g, '…');
   s = s.trim();
-  if (s.length > 16) s = s.slice(0, 16);
   return s;
 }
 
@@ -94,6 +109,7 @@ E.load = function (dir, obj, opts) {
       var key = keyOf(dir, k);
       if (!key) return;
       var ent = mk(obj.w[k], prio);
+      if (!ent) return;
       if (useF) ent.lf = freqLog(fs, wi * 2, fmin);
       if (set(T.w, key, ent)) n++;
     });
@@ -101,7 +117,9 @@ E.load = function (dir, obj, opts) {
   if (obj && obj.p) Object.keys(obj.p).forEach(function (k) {
     var key = keyOf(dir, k);
     if (!key) return;
-    if (set(T.p, key, mk(obj.p[k], prio))) n++;
+    var ent = mk(obj.p[k], prio);
+    if (!ent) return;
+    if (set(T.p, key, ent)) n++;
     var wc = key.indexOf(' ') >= 0 ? key.split(' ').length : key.length;
     if (wc > T.pmax) T.pmax = Math.min(wc, 8);
   });
@@ -332,7 +350,22 @@ var IRR = {};
  ['tried', 'try', 'past'], ['tries', 'try', '3sg'], ['trying', 'try', 'ing'], ['carried', 'carry', 'past'], ['carries', 'carry', '3sg']
 ].forEach(function (r) { if (!IRR[r[0]]) IRR[r[0]] = { base: r[1], feat: r[2] }; });
 
+/* 纯词形计算不依赖词库；小容量 LRU 避免重复输入/词形反复扫描。
+   返回的数组在引擎中只读，不清空或改写。 */
+var morphCache = new Map();
+function cachedMorph(key, make) {
+  var hit = morphCache.get(key);
+  if (hit) { morphCache.delete(key); morphCache.set(key, hit); return hit; }
+  var made = make();
+  morphCache.set(key, made);
+  if (morphCache.size > 2048) morphCache.delete(morphCache.keys().next().value);
+  return made;
+}
 function enForms(word) {
+  var original = String(word);
+  return cachedMorph('en:' + original, function () { return makeEnForms(original); });
+}
+function makeEnForms(word) {
   var l = String(word).toLowerCase().replace(/[^\w'’-]/g, '').replace(/[’']s$/, '');
   var out = [], seen = {};
   function push(b, f) { if (b && !seen[b]) { seen[b] = 1; out.push({ base: b, feat: f || '' }); } }
@@ -416,8 +449,13 @@ var JA_BACK = [
   ['できる', ['する'], 'pot']
 ].filter(function (x) { return x && x[0] && x[1]; });
 
-// 需要「最长尾部优先」
+// 需要「最长尾部优先」；建立末字索引时保持该顺序及同长度候选的原有顺序。
 JA_BACK.sort(function (a, b) { return b[0].length - a[0].length; });
+var JA_BY_TAIL = {};
+JA_BACK.forEach(function (rule) {
+  var c = rule[0].slice(-1);
+  (JA_BY_TAIL[c] || (JA_BY_TAIL[c] = [])).push(rule);
+});
 
 const JA_KANA_STEM = {
   'き': ['く', 'きる'], 'し': ['す', 'する'], 'ち': ['つ'], 'み': ['む'], 'び': ['ぶ'], 'べ': ['べる'],
@@ -441,22 +479,26 @@ function jaStemForms(stem) {
 }
 
 function jaForms(seg) {
+  return cachedMorph('ja:' + seg, function () { return makeJaForms(seg); });
+}
+function makeJaForms(seg) {
   var out = [{ k: seg, feat: '' }], seen = {}; seen[seg] = 1;
+  var rules = JA_BY_TAIL[seg.slice(-1)] || [];
   function push(k, f) { if (k && k.length && !seen[k]) { seen[k] = 1; out.push({ k: k, feat: f }); } }
   // 1) 后缀 + 词干还原（最可信的候选排在前面）
-  for (var i = 0; i < JA_BACK.length; i++) {
-    var tl = JA_BACK[i][0];
+  for (var i = 0; i < rules.length; i++) {
+    var tl = rules[i][0];
     if (seg.length <= tl.length || seg.slice(-tl.length) !== tl) continue;
     var stem = seg.slice(0, seg.length - tl.length);
     if (!stem) continue;
-    jaStemForms(stem).forEach(function (k) { push(k, JA_BACK[i][2]); });
-    JA_BACK[i][1].forEach(function (rep) { push(stem + rep, JA_BACK[i][2]); });
+    jaStemForms(stem).forEach(function (k) { push(k, rules[i][2]); });
+    rules[i][1].forEach(function (rep) { push(stem + rep, rules[i][2]); });
   }
   // 2) 低优先：只剥后缀（体言＋で／名詞＋です 一类）
-  for (var j = 0; j < JA_BACK.length; j++) {
-    var t2 = JA_BACK[j][0];
+  for (var j = 0; j < rules.length; j++) {
+    var t2 = rules[j][0];
     if (seg.length <= t2.length || seg.slice(-t2.length) !== t2) continue;
-    if (JA_BACK[j][1].indexOf('') >= 0) push(seg.slice(0, seg.length - t2.length), JA_BACK[j][2]);
+    if (rules[j][1].indexOf('') >= 0) push(seg.slice(0, seg.length - t2.length), rules[j][2]);
   }
   if (seg.length > 1 && !/す$/.test(seg)) push(seg.slice(0, -1) + 'る', 'infl');
   // 3) 送假名本身就是一个う段音节：食べ → 食べる、飲み → 飲む

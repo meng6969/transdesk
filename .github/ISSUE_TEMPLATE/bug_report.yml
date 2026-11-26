@@ -1,0 +1,38 @@
+name: 问题报告
+description: 报告翻译、离线、OCR 或安卓安装问题
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: 请勿粘贴隐私文本、图片、令牌或签名密钥。
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      placeholder: 网页 / APK 1.5
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 环境
+      placeholder: 浏览器及版本 / Android 版本 / WebView 版本
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期与实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 脱敏后的日志或截图
+      description: 删除个人信息、访问令牌和本地路径。

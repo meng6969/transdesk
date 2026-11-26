@@ -394,9 +394,9 @@ def group_cedict(cedict):
     """按简体词头聚合，繁体词头另建一组；参照条目（variant of 之类）不参与。"""
     groups = {}
     for entry in cedict:
-        first = (entry.get('english') or [u''])[0]
-        keys = en_keys(first)
-        if keys and SKIP_SEGMENT.match(keys[0]):
+        # 一条记录可能同时有有效义项和参照义项：只要还有任何可译义项就保留，
+        # 义项级过滤由 en_keys/en_pairs 完成；全是参照项的词头才整条排除。
+        if not any(en_keys(sense) for sense in (entry.get('english') or [])):
             continue
         for head in (entry.get('simplified'), entry.get('traditional')):
             head = (head or '').strip()

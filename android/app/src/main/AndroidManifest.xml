@@ -4,8 +4,8 @@
      词典、规则引擎、OCR 与神经模型全部从 APK 内的 assets 读取。 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="dev.transdesk.app"
-    android:versionCode="4"
-    android:versionName="1.4">
+    android:versionCode="5"
+    android:versionName="1.5">
 
     <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="34" />
 

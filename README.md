@@ -1,102 +1,68 @@
 # 译台 TransDesk
 
-纯离线的英/日 ⇄ 中翻译台：一个静态网站 + 一个 Android 10+ APK。
-核心是**词典 + 规则引擎**（短语最长匹配、日文活用还原、虚词与语序规则、逐段对照），
-可选加载**本地 Bergamot int8 神经模型**提升中⇄英质量。
-没有后端、没有数据库、没有任何网络请求——断网、飞行模式下照常用。
+纯离线的中 / 英 / 日翻译台：静态网站 + Android 10+ APK。词典、规则、OCR 与可选的 Bergamot 神经模型全部在本机运行，无账号、无后端、无第三方请求。
 
-## 在线体验
+> **AI 生成声明：** 本项目由 AI 辅助生成，按现状提供，重要文本请自行核对。详见 [AI_DISCLOSURE.md](AI_DISCLOSURE.md)。
+>
+> **许可：** 原创代码自 v1.5 起采用 [PolyForm Noncommercial 1.0.0](LICENSE)，源码公开，仅供学习、研究与个人等非商业用途；**禁止商业使用、付费分发和倒卖**。第三方组件与数据保持原许可，见 [NOTICE.md](NOTICE.md)。v1.4 及更早的历史副本仍按 MIT 使用。
 
-- 官网（干净地址镜像）：<https://transdesk-rg8bmuwp2yo.qoder.zone>（词典引擎；该部署对产物体积有上限，不携带神经模型）
-- GitHub Pages 个人地址版（URL 含账号名）已按要求下线；`python pack-ghpages.py`
-  可随时重新组装**含中⇄英 int8 神经模型**的 Pages 部署目录（约 133 MB）。
-  想要「不含账号名 + 带模型」的在线版：给仓库绑定自定义域名（CNAME 到 Pages），
-  或等组织账号可用后迁移仓库。
+## 在线与下载
 
-镜像为纯静态部署；模型缺失或加载失败时自动回退词典引擎，不报错。
+- 官网（干净地址，不含账号名）：<https://transdesk-rg8bmuwp2yo.qoder.zone>
+  携带**英→中**神经模型；中→英自动回退词典引擎。
+- APK 与源码：<https://github.com/meng6969/transdesk/releases>
+- 本站与 APP 均为纯静态/离线应用；模型加载失败时自动回退词典，不报错。
 
 ## 功能
 
-- 中⇄英、中⇄日四个方向，界面上只有两个方向键 + 一个 ⇄ 翻面键
-- 短语优先的最长匹配；日文动词/形容词活用还原（走って → 歩く）
-- 冠词/复数/时态、日文助词与句末语气的规则映射，译文按中文语序成句
-- 逐段对照 / 判定依据：每一块译文是被哪条规则或哪个词条翻出来的，均可展开查看
-- 我的词典：优先级最高，支持 CSV / TSV / JSON / Markdown 表格导入，只存本机 IndexedDB
-- 图片翻译：Tesseract.js 本地 OCR（eng / jpn），图片不出本机
-- 可选神经层：Bergamot/Marian int8（中⇄英），单线程 wasm，不需要 SharedArrayBuffer
-- Android：WebView 壳 + 虚拟 https 源服务本地资源，**零权限**（无 INTERNET，离线由系统强制）
+- 中⇄英、中⇄日四个方向；两个方向键 + 一个翻面键。
+- 短语最长匹配、日文活用还原、虚词与语序规则、逐段对照与判定依据。
+- 词库按方向懒加载；词形缓存、模型防抖与结果复用降低重复计算。
+- 本地 OCR（Tesseract.js，eng / jpn），图片不出设备。
+- 英→中神经模型优先；安卓 APP 同时带中→英模型。
+- “我的词典”支持 CSV / TSV / JSON / Markdown，只存 IndexedDB。
+- Android WebView 壳**零权限**，不申请 `INTERNET`；minSdk 29（Android 10）。
 
-## 本地运行
+## 本地运行与测试
 
 ```bash
-python serve.py          # 把 web/ 服务到 http://localhost:8000
+python serve.py       # http://localhost:8000
+node test.js          # 词典 / 规则回归测试
 ```
 
-任何指向 `web/` 的静态服务器均可。直接双击 index.html 不行：
-Service Worker / ES module / IndexedDB 需要安全上下文（localhost 或 https）。
+直接双击 `index.html` 不可用：Service Worker、ES module 与 IndexedDB 需要 localhost 或 HTTPS。
 
-## 神经模型（可选，约 100 MB）
+## 模型与站点打包
 
 ```bash
 python mt/fetch-models.py --pairs zh-en,en-zh
+python pack-ghpages.py .ghpages                    # 双向模型，约 133 MB
+python pack-ghpages.py web-mt --pairs en-zh        # 官网单语向，约 78 MB
 ```
 
-从 hf-mirror 下载 Mozilla 的 int8 模型，并逐文件与 Mozilla Remote Settings
-登记项做 sha256 校验，重写 `mt/registry.json` 与 `mt/SHA256SUMS.txt`。
-没有模型时网站与 APP 自动只走词典引擎，不会报错。
-想加日文神经方向：`--pairs zh-en,en-zh,ja-en,en-ja`（经英文中转，体积与延迟翻倍，按需）。
+模型从 Mozilla Firefox Translations 发布源获取，并按 Remote Settings 登记值做 SHA256 校验。模型二进制不入 git；缺少模型时自动使用词典引擎。
 
-模型二进制不进 git 主分支；`python pack-ghpages.py` 会把 `web/` 连同本地模型
-打包成 GitHub Pages 部署目录（gh-pages 分支携带模型，main 分支保持轻量）。
-
-## 词典数据重建
-
-`vendor/` 是上游开放许可源数据（CC BY-SA 4.0 / CC BY 4.0 / MIT，见 NOTICE.md）。
-`build-zh.py`、`build-ja.py`、`build-en.py`、`build-en-extra.py` 与 `dictlib.py`
-对其做机械清洗与表查询，产出 `web/data/*.json`。
-规则：**查不通、或释义是“参见某条”这类参照项的一律丢弃，不手工补词**；
-来源与许可标识写进每个 payload 的 `meta` 字段。
-
-## Android 打包（无 Gradle / Maven）
+## Android 打包
 
 ```bash
-bash android-tools/get-jdk17.sh    # 首次：Temurin JDK 17
-bash android-tools/get-sdk.sh      # 首次：platform-34 + build-tools 34
-bash android/rebuild.sh            # 打包 web/ + mt/ 并产出签名 APK
+bash android-tools/get-jdk17.sh    # 首次
+bash android-tools/get-sdk.sh      # 首次
+bash android-tools/get-pkgs.sh     # 首次：platform-34 + build-tools 34
+bash android/rebuild.sh
 ```
 
-流水线：aapt2 compile/link → javac --release 17 → d8 → zipalign → apksigner。
-`minSdk 29`（Android 10）、`targetSdk 34`。签名用本地自签名
-`android/transdesk.keystore`（不入库，脚本缺失时自动生成），适合侧载：
-`adb install android/build/TransDesk.apk` 或拷到手机直接安装。
-Release 页也提供已签名的成品 APK。
+无 Gradle / Maven：aapt2 → javac → d8 → zipalign → apksigner。签名密钥仅存本机，不入库。神经模型与 OCR 需要 WebView ≥ Chrome/91；旧内核自动降级，词典翻译不受影响。
 
-注意：神经层与图片 OCR 需要 WebView 内核 ≥ Chrome 91（wasm SIMD）；
-更老的内核上这两项自动不可用，词典与规则翻译不受影响。
+## 词典来源
 
-## 目录结构
+`vendor/` 保留上游开放许可资料；构建脚本只做机械清洗与表查询。**查不通、或释义是“参见某条”等参照项的一律丢弃，不手工补词。** 来源与许可标识写入 `web/data/*.json` 的 `meta`。
 
-```
-web/            静态网站（引擎、界面、词典数据、OCR 资源、sw.js）
-web/mt/boot.js  可选神经层加载器（无模型时自行退出）
-mt/             模型清单、校验和、获取脚本、wasm 运行时（模型二进制不入库）
-vendor/         上游开放许可源数据与原许可文本
-android/        WebView 壳源码 + 无 Gradle 打包脚本
-build-*.py      词典数据构建管线（dictlib.py 为共用库）
-serve.py        本地静态服务器
-test.js         引擎回归测试（node test.js）
-```
+主要来源：Word Atlas（CC BY 4.0）、CC-CEDICT（CC BY-SA 4.0）、JMdict / KANJIDIC2 / KanjiVG（CC BY-SA 4.0）、JmdictFurigana 与 Tatoeba（见 NOTICE）、jieba（MIT）。
 
-## 许可与署名
+## 贡献
 
-- 代码：**MIT**（见 LICENSE）
-- 编译词典数据 `web/data/**`：**CC BY-SA 4.0**（含 CC BY-SA 源数据，适用相同方式共享）
-- 第三方组件与数据源完整署名：**NOTICE.md**
-- 应用内「说明」面板同样保留来源与许可名称
+提交前阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。请勿提交密钥、模型二进制、缓存或隐私文本。
 
-## 已知边界
+## 边界
 
-- 不擅长：法律 / 合同 / 医疗 / 财务等必须精确的文本、文学与双关、长难嵌套从句
-- 中→英 / 中→日为短句设计：主谓宾清楚的一两句效果不错，长段落会退化成关键词式译文
-- 专有名词默认保留原文；加进「我的词典」即可固定译法
-- 它是词典 + 规则引擎（加一个可选的小型本地神经层），不是云端大模型
+不适合法律、合同、医疗、财务等精确文本，也不擅长文学双关与长难嵌套从句。中→英 / 中→日以短句为主，长段落可能退化为关键词式译文；专有名词可在“我的词典”中固定。

@@ -3,7 +3,7 @@
    断网 / 飞行模式下依旧可用。所有资源都来自本站，不涉及任何第三方域名。 */
 'use strict';
 
-var VER = 'transdesk-v5';
+var VER = 'transdesk-v6';
 var SHELL = [
   './', 'index.html', 'styles.css', 'engine.js', 'app.js',
   'manifest.webmanifest', 'assets/icon.svg'
@@ -62,6 +62,10 @@ self.addEventListener('fetch', function (ev) {
   if (req.method !== 'GET') return;
   var u = new URL(req.url);
   if (u.origin !== self.location.origin) return;   // 本站之外没有请求；有也不接管
+  /* 神经模型与运行时（/mt/）不进 Cache Storage，也不需要离线兜底：
+     完全绕开 SW，直连网络 + 浏览器 HTTP 缓存。SW 代理层曾在弱网/代理
+     环境下把 worker 的清单请求误判为离线（503），导致神经层静默失效。 */
+  if (u.pathname.indexOf('/mt/') === 0) return;
 
   ev.respondWith(pick(req).then(function (cached) {
     var net = fetch(req).then(function (res) { save(u.href, res); return res; }).catch(function () { return null; });

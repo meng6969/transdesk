@@ -168,13 +168,14 @@
       <p id="cov" class="cov">词库覆盖统计加载中……</p>
       <ul class="credits">
         <li>英文词库来自 <a href="https://github.com/designfuchen/word-atlas" rel="noopener noreferrer" target="_blank">Word Atlas</a>（代码 MIT，词库 <b>CC BY 4.0</b>，署名 “Word Atlas contributors”），含 CEFR 等级、搭配与词族；导入时按中文释义取义项。</li>
-        <li>日文、中文基础词库由本项目自行整理（高频词 + 短语 + 语法条目），不来自任何需要授权的商业词典。</li>
+        <li>日文词库来自 JMdict / KANJIDIC2 / KanjiVG 与 JmdictFurigana 汇编（CC BY-SA 4.0，Tatoeba 句库为 CC BY 2.0 FR）；中文词库来自 CC-CEDICT（CC BY-SA 4.0）与 jieba（MIT）。完整来源见仓库 NOTICE。</li>
         <li>图片识别使用 <a href="https://github.com/naptha/tesseract.js" rel="noopener noreferrer" target="_blank">Tesseract.js</a>（Apache-2.0）与 <a href="https://github.com/tesseract-ocr/tessdata_fast" rel="noopener noreferrer" target="_blank">tessdata_fast eng/jpn</a>（Apache-2.0 / 兼容许可），文件全部自本站加载。</li>
         <li>内置示例与说明文本为本站原创。</li>
       </ul>
+      <p><b>AI 生成与非商业许可：</b>本项目由 AI 辅助生成，按现状提供。原创代码自 v1.5 起采用 PolyForm Noncommercial 1.0.0，仅供学习、研究与个人等非商业用途，禁止商业使用、付费分发或倒卖；第三方材料保持原许可。</p>
       <h3>请把它用在这些地方（以及不要用在这些地方）</h3>
       <p><b>擅长：</b>读英文/日文网页段落、日志与 README、通知与评论、日常短句、看剧截图里的台词——需要“看懂大意”而不是“发表级译文”的场景，以及任何你不想把内容交给服务器的隐私材料。</p>
-      <p><b>不擅长：</b>法律、合同、医疗、财务等必须精确的文本；文学与双关；长难嵌套从句。它的底座是词典 + 规则引擎；随站携带本地神经层（Bergamot int8 小型模型，如安卓 APP 与 GitHub Pages 版）的部署会在上方并行给出模型译文，模型缺失时自动回退词典引擎。两层都不是云端大模型：术语固定、句式常见的文本质量很好，越文学化、越口语化越容易出怪句子。</p>
+      <p><b>不擅长：</b>法律、合同、医疗、财务等必须精确的文本；文学与双关；长难嵌套从句。它的底座是词典 + 规则引擎；本站随带本地神经层（Bergamot int8 小型模型，英→中方向），会在上方并行给出模型译文；安卓 APP 则带中⇄英双向模型。没有模型的方向（如本站的中→英）自动回退词典引擎。两层都不是云端大模型：术语固定、句式常见的文本质量很好，越文学化、越口语化越容易出怪句子。</p>
       <p><b>专有名词、人名、公司名、产品名</b>默认保留原文（离线没有可靠的音译表）；把它们加进“我的词典”就能固定译法，这也是让译文越来越合你口味的正确姿势。</p>
       <p><b>中 → 英 / 中 → 日</b>为短句设计：主谓宾清楚的一两句效果不错，长段落会退化成关键词式译文，说明区不粉饰这一点。</p>
       <h3>隐私说明</h3>
