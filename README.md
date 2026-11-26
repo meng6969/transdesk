@@ -8,9 +8,8 @@
 
 ## 在线与下载
 
-- 官网（干净地址，不含账号名）：<https://transdesk-rg8bmuwp2yo.qoder.zone>
+- 官网：<https://transdesk-rg8bmuwp2yo.qoder.zone>
   携带**英→中**神经模型；中→英自动回退词典引擎。
-- APK 与源码：<https://github.com/meng6969/transdesk/releases>
 - 本站与 APP 均为纯静态/离线应用；模型加载失败时自动回退词典，不报错。
 
 ## 功能
